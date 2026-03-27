@@ -61,3 +61,6 @@ sudo ./botnet_attack.sh
 ```bash
 chmod +x botnet_attack.sh
 ```
+## Folder tranning_model chứa kết quả preprocess, huấn luyện và các mô hình
+* File training_ensemble_model.ipynb là file train 2 model có độ chính xác 99,96%
+
