@@ -175,6 +175,8 @@ class Flow:
 active_flows = {}
 # [MỚI] Bảng theo dõi điểm rủi ro tích lũy của từng IP
 ip_risk_scores = defaultdict(float)
+# [MỚI] Bảng đếm tổng số gói tin để chống DoS/Port Scan
+ip_packet_counts = defaultdict(int)
 # ==============================================================================
 # 3. CHỨC NĂNG CHẶN VÀ DỰ ĐOÁN
 # ==============================================================================
@@ -196,7 +198,7 @@ def block_ip(ip_address, attack_type):
         print(f"[FAIL] Lỗi khi chặn IP (Bạn có chạy sudo chưa?): {e}")
 
 def process_packet(packet):
-    print(f".", end="", flush=True) 
+    #print(f".", end="", flush=True) 
     
     if not packet.haslayer(IP): return
 
@@ -204,9 +206,19 @@ def process_packet(packet):
     dst_ip = packet[IP].dst
     proto = packet[IP].proto
     
-    # <--- SỬA CHỖ NÀY: WHITELIST (DANH SÁCH TRẮNG) --->
+    # <--- WHITELIST (DANH SÁCH TRẮNG) --->
     # Bỏ qua nếu IP nguồn là Localhost HOẶC là chính máy Ubuntu này (Dynamic IP)
     if src_ip == "127.0.0.1" or src_ip == MY_IP or src_ip == GATEWAY_IP: 
+        return
+    if src_ip in BLOCKED_IPS:
+        return
+    ip_packet_counts[src_ip] += 1
+    
+    # Nếu một IP gửi quá 300 gói tin cực nhanh (Hping3/Nmap thường gửi hàng ngàn gói)
+    # Chặn ngay lập tức mà không cần hỏi AI
+    if ip_packet_counts[src_ip] > 300:
+        block_ip(src_ip, "DoS / Port Scan (Traffic Flood)")
+        del ip_packet_counts[src_ip] # Reset đếm
         return
     # <------------------------------------------------->
 
